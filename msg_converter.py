@@ -437,9 +437,7 @@ from pathlib import Path
 import logging
 import gc
 import zipfile
-# Fix the import to be absolute instead of relative
 from utils import setup_logging, optimize_images, get_unique_filepath
-
 class MSGtoPDFConverter:
     def __init__(self, base_output_dir="output", max_workers=4):
         """Initialize converter with base output directory and threading parameters."""
@@ -465,90 +463,6 @@ class MSGtoPDFConverter:
         """
         return header
 
-    def _create_email_folder(self, msg, prefix=''):
-        """Create a unique folder for the email and its attachments."""
-        try:
-            subject = msg.subject or "No Subject"
-            clean_subject = re.sub(r'[<>:"/\\|?*]', '_', subject)[:50]
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            folder_name = f"{prefix}_{clean_subject}_{timestamp}"
-            folder_path = os.path.join(self.base_output_dir, folder_name)
-            
-            Path(folder_path).mkdir(parents=True, exist_ok=True)
-            Path(folder_path, "attachments").mkdir(exist_ok=True)
-            
-            return folder_path
-        except Exception as e:
-            logging.error(f"Error creating email folder: {str(e)}")
-            raise
-
-    def _save_attachments(self, msg, folder_path):
-        """Save all attachments efficiently."""
-        saved_attachments = []
-        attachments_folder = os.path.join(folder_path, "attachments")
-        
-        for attachment in msg.attachments:
-            try:
-                filename = attachment.longFilename or attachment.shortFilename
-                filepath = get_unique_filepath(attachments_folder, filename)
-                
-                with open(filepath, 'wb') as f:
-                    attachment_data = attachment.data
-                    if any(filepath.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png']):
-                        attachment_data = optimize_images(attachment_data)
-                    f.write(attachment_data)
-                
-                saved_attachments.append({
-                    'filename': os.path.basename(filepath),
-                    'original_filename': filename,
-                    'filepath': filepath,
-                    'size': len(attachment_data),
-                    'cid': getattr(attachment, 'cid', None)
-                })
-                
-            except Exception as e:
-                logging.error(f"Error saving attachment {filename}: {str(e)}")
-                continue
-        
-        return saved_attachments
-
-    def _process_inline_images(self, msg, html_content, saved_attachments):
-        """Process inline images and replace them with base64 encoded versions."""
-        if not msg.htmlBody:
-            return html_content
-
-        try:
-            soup = BeautifulSoup(html_content, 'html.parser')
-            
-            for img in soup.find_all('img'):
-                src = img.get('src', '')
-                
-                if src.startswith('cid:'):
-                    cid = src[4:]
-                    for attachment in saved_attachments:
-                        if attachment['cid'] == cid:
-                            with open(attachment['filepath'], 'rb') as f:
-                                img_data = f.read()
-                                img_base64 = base64.b64encode(img_data).decode()
-                                ext = os.path.splitext(attachment['filename'])[1][1:]
-                                img['src'] = f"data:image/{ext};base64,{img_base64}"
-                            break
-                elif not src.startswith('data:'):
-                    filename = os.path.basename(src)
-                    for attachment in saved_attachments:
-                        if attachment['original_filename'] == filename:
-                            with open(attachment['filepath'], 'rb') as f:
-                                img_data = f.read()
-                                img_base64 = base64.b64encode(img_data).decode()
-                                ext = os.path.splitext(attachment['filename'])[1][1:]
-                                img['src'] = f"data:image/{ext};base64,{img_base64}"
-                            break
-
-            return str(soup)
-        except Exception as e:
-            logging.error(f"Error processing inline images: {str(e)}")
-            return html_content
-
     def _create_optimized_html_content(self, msg, saved_attachments):
         """Create optimized HTML content with better page layout."""
         try:
@@ -567,18 +481,14 @@ class MSGtoPDFConverter:
                 <meta charset="UTF-8">
                 <style>
                     @page {{
-                        margin: 1cm;
                         size: A4;
-                        @top-right {{
-                            content: counter(page);
-                        }}
+                        margin: 2cm;
                     }}
                     body {{
                         font-family: Arial, sans-serif;
                         line-height: 1.6;
                         color: #333;
-                        max-width: 800px;
-                        margin: 0 auto;
+                        margin: 0;
                         padding: 20px;
                     }}
                     img {{
@@ -607,58 +517,46 @@ class MSGtoPDFConverter:
             logging.error(f"Error creating HTML content: {str(e)}")
             raise
 
-    def _create_attachments_list(self, saved_attachments):
-        """Create HTML list of attachments."""
-        try:
-            non_inline_attachments = [a for a in saved_attachments if not a['cid']]
-            if not non_inline_attachments:
-                return ""
-
-            attachments_html = """
-            <div style='margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;'>
-                <h3>Attachments:</h3>
-                <ul>
-            """
-            for attachment in non_inline_attachments:
-                size = self._format_size(attachment['size'])
-                attachments_html += f"""
-                    <li style='margin: 5px 0;'>
-                        {attachment['filename']} ({size})
-                    </li>
-                """
-            attachments_html += "</ul></div>"
-            return attachments_html
-        except Exception as e:
-            logging.error(f"Error creating attachments list: {str(e)}")
-            return ""
-
-    def _format_size(self, size_bytes):
-        """Format file size in human readable format."""
-        for unit in ['B', 'KB', 'MB', 'GB']:
-            if size_bytes < 1024:
-                return f"{size_bytes:.1f} {unit}"
-            size_bytes /= 1024
-        return f"{size_bytes:.1f} GB"
-
     def convert_single_file(self, file_path, prefix=''):
         """Convert a single MSG file to PDF and extract attachments."""
         msg = None
+        temp_dir = None
         try:
             msg = extract_msg.Message(file_path)
             folder_path = self._create_email_folder(msg, prefix)
             
+            # Create temporary directory for processing
+            temp_dir = tempfile.mkdtemp()
+            
+            # Save attachments
             saved_attachments = self._save_attachments(msg, folder_path)
+            
+            # Create HTML content
             html_content = self._create_optimized_html_content(msg, saved_attachments)
             
-            pdf_path = os.path.join(folder_path, "email_content.pdf")
-            css = CSS(string='@page { margin: 1cm; size: A4; }')
+            # Save HTML to temporary file
+            html_path = os.path.join(temp_dir, 'temp.html')
+            with open(html_path, 'w', encoding='utf-8') as f:
+                f.write(html_content)
             
-            HTML(string=html_content).write_pdf(
+            # Generate PDF path
+            pdf_path = os.path.join(folder_path, "email_content.pdf")
+            
+            # Convert to PDF using WeasyPrint
+            HTML(filename=html_path).write_pdf(
                 pdf_path,
-                stylesheets=[css],
-                optimize_size=('fonts', 'images')
+                stylesheets=[CSS(string='''
+                    @page {
+                        size: A4;
+                        margin: 2cm;
+                        @top-right {
+                            content: counter(page);
+                        }
+                    }
+                ''')]
             )
             
+            # Create ZIP
             zip_path = f"{folder_path}.zip"
             shutil.make_archive(folder_path, 'zip', folder_path)
             
@@ -670,7 +568,10 @@ class MSGtoPDFConverter:
         finally:
             if msg:
                 msg.close()
+            if temp_dir and os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
             gc.collect()
+
 
     def batch_convert(self, file_paths, progress_callback=None):
         """Convert multiple MSG files in parallel with progress tracking."""
