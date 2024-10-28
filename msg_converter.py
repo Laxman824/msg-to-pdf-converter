@@ -437,7 +437,8 @@ from pathlib import Path
 import logging
 import gc
 import zipfile
-from .utils import setup_logging, optimize_images, get_unique_filepath
+# Fix the import to be absolute instead of relative
+from utils import setup_logging, optimize_images, get_unique_filepath
 
 class MSGtoPDFConverter:
     def __init__(self, base_output_dir="output", max_workers=4):

@@ -5,54 +5,16 @@ from msg_converter import MSGtoPDFConverter
 import zipfile
 from datetime import datetime
 import shutil
-import logging
 from pathlib import Path
-import base64
-from tqdm import tqdm
-import time
-# Add this at the start of your app.py
-import sys
-import subprocess
-import logging
-
-def check_weasyprint_dependencies():
-    try:
-        from weasyprint import HTML, CSS
-        # Try to create a simple PDF to verify everything works
-        HTML(string='<p>Test</p>').write_pdf('/tmp/test.pdf')
-        return True
-    except Exception as e:
-        logging.error(f"WeasyPrint initialization error: {str(e)}")
-        try:
-            # Try to install missing dependencies
-            subprocess.check_call(['apt-get', 'update'])
-            subprocess.check_call(['apt-get', 'install', '-y', 
-                                 'libpango-1.0-0', 'libharfbuzz0b', 
-                                 'libpangoft2-1.0-0', 'libffi-dev'])
-            return True
-        except Exception as install_error:
-            logging.error(f"Failed to install dependencies: {str(install_error)}")
-            return False
-
-# Add this check at the start of your main() function
-def main():
-    if not check_weasyprint_dependencies():
-        st.error("""
-        Error: Required system libraries are missing. 
-        Please contact the administrator to install the required dependencies.
-        """)
-        return
-    
 
 # Configure page settings
 st.set_page_config(
     page_title="MSG to PDF Converter",
     page_icon="📧",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# Custom CSS to improve UI
+# Add custom CSS
 st.markdown("""
     <style>
     .stProgress > div > div > div > div {
@@ -64,9 +26,6 @@ st.markdown("""
         border-radius: 5px;
         padding: 0.5rem 1rem;
         border: none;
-    }
-    .stButton>button:hover {
-        background-color: #0066cc;
     }
     .success-message {
         padding: 1rem;
@@ -84,30 +43,6 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
-
-def create_download_link(file_path, link_text):
-    """Create a download link for a file"""
-    with open(file_path, 'rb') as f:
-        bytes = f.read()
-        b64 = base64.b64encode(bytes).decode()
-        href = f'<a href="data:application/zip;base64,{b64}" download="{os.path.basename(file_path)}">{link_text}</a>'
-        return href
-
-def setup_logging():
-    """Setup logging configuration"""
-    log_dir = "logs"
-    Path(log_dir).mkdir(exist_ok=True)
-    
-    log_file = os.path.join(log_dir, f"conversion_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_file),
-            logging.StreamHandler()
-        ]
-    )
-    return log_file
 
 def process_uploaded_files(uploaded_files, progress_bar, status_text):
     """Process uploaded MSG files and return results"""
@@ -140,7 +75,6 @@ def process_uploaded_files(uploaded_files, progress_bar, status_text):
                 )
                 results.append((file_path, zip_path))
             except Exception as e:
-                logging.error(f"Error processing {file_path}: {str(e)}")
                 errors.append((file_path, str(e)))
             finally:
                 progress_bar.progress((i + 1) / total_files)
