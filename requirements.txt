@@ -1,6 +1,6 @@
 streamlit==1.31.0
 extract-msg==0.45.0
-WeasyPrint==60.1
+weasyprint>=54.0
 beautifulsoup4==4.12.2
 tqdm==4.66.1
 Pillow==10.4.0
