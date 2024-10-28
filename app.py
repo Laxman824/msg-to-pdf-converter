@@ -10,6 +10,39 @@ from pathlib import Path
 import base64
 from tqdm import tqdm
 import time
+# Add this at the start of your app.py
+import sys
+import subprocess
+import logging
+
+def check_weasyprint_dependencies():
+    try:
+        from weasyprint import HTML, CSS
+        # Try to create a simple PDF to verify everything works
+        HTML(string='<p>Test</p>').write_pdf('/tmp/test.pdf')
+        return True
+    except Exception as e:
+        logging.error(f"WeasyPrint initialization error: {str(e)}")
+        try:
+            # Try to install missing dependencies
+            subprocess.check_call(['apt-get', 'update'])
+            subprocess.check_call(['apt-get', 'install', '-y', 
+                                 'libpango-1.0-0', 'libharfbuzz0b', 
+                                 'libpangoft2-1.0-0', 'libffi-dev'])
+            return True
+        except Exception as install_error:
+            logging.error(f"Failed to install dependencies: {str(install_error)}")
+            return False
+
+# Add this check at the start of your main() function
+def main():
+    if not check_weasyprint_dependencies():
+        st.error("""
+        Error: Required system libraries are missing. 
+        Please contact the administrator to install the required dependencies.
+        """)
+        return
+    
 
 # Configure page settings
 st.set_page_config(
