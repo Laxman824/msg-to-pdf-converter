@@ -4,8 +4,9 @@
 #https://msg-to-pdf-converter-cams.streamlit.app/
 #4th best version with 10000 docs parallel processing and 
 # First install required dependencies
-!pip install extract-msg weasyprint beautifulsoup4 tqdm
-!apt-get install -y libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0
+#!pip install extract-msg weasyprint beautifulsoup4 tqdm
+#!apt-get install -y libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0
+from tqdm import tqdm  # Regular tqdm instead of notebook version
 
 import extract_msg
 from weasyprint import HTML, CSS
