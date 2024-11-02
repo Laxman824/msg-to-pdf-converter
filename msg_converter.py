@@ -728,7 +728,6 @@
 
 ####################SECOND UPDATE IS ABOVE FOR BACKUP CODE###############
 
-#############################################PREVIOUS CODE FOR GOOGLE COLAB####################
 #adding email format cc,bcc,attachment and included table format view and OUTLOOK CLASSIC VIEW
 ##msg2 pdf OUTLOOK VIEW cUSTomise and handliing table view in
 #CODE FOR GOOGLE COLAB TO WORK DIRECTLY ON MULTIPLE .msg files to select and convert to pdf
