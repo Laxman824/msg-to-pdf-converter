@@ -737,6 +737,8 @@
 # First install required dependencies
 #!pip install extract-msg weasyprint beautifulsoup4 tqdm
 #!apt-get install -y libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0
+
+
 from tqdm import tqdm  # Regular tqdm instead of notebook version
 
 import extract_msg
@@ -1272,56 +1274,56 @@ class MSGtoPDFConverter:
         return results, errors
 
 # Function to handle batch upload and processing
-def process_batch():
-    print("Please upload your MSG files (you can select multiple files):")
-    uploaded = files.upload()
+# def process_batch():
+#     print("Please upload your MSG files (you can select multiple files):")
+#     uploaded = files.upload()
     
-    if not uploaded:
-        print("No files were uploaded.")
-        return
+#     if not uploaded:
+#         print("No files were uploaded.")
+#         return
     
-    # Save uploaded files temporarily
-    msg_files = []
-    for filename, content in uploaded.items():
-        temp_path = os.path.join('/tmp', filename)
-        with open(temp_path, 'wb') as f:
-            f.write(content)
-        msg_files.append(temp_path)
+#     # Save uploaded files temporarily
+#     msg_files = []
+#     for filename, content in uploaded.items():
+#         temp_path = os.path.join('/tmp', filename)
+#         with open(temp_path, 'wb') as f:
+#             f.write(content)
+#         msg_files.append(temp_path)
     
-    # Create converter instance
-    converter = MSGtoPDFConverter(max_workers=4)  # Adjust max_workers based on available resources
+#     # Create converter instance
+#     converter = MSGtoPDFConverter(max_workers=4)  # Adjust max_workers based on available resources
     
-    try:
-        # Process all files
-        results, errors = converter.batch_convert(msg_files)
+#     try:
+#         # Process all files
+#         results, errors = converter.batch_convert(msg_files)
         
-        # Download results
-        print("\nProcessing complete!")
-        print(f"Successfully converted: {len(results)} files")
-        print(f"Errors encountered: {len(errors)} files")
+#         # Download results
+#         print("\nProcessing complete!")
+#         print(f"Successfully converted: {len(results)} files")
+#         print(f"Errors encountered: {len(errors)} files")
         
-        if errors:
-            print("\nErrors:")
-            for file_path, error in errors:
-                print(f"- {os.path.basename(file_path)}: {error}")
+#         if errors:
+#             print("\nErrors:")
+#             for file_path, error in errors:
+#                 print(f"- {os.path.basename(file_path)}: {error}")
         
-        # Create a master ZIP file containing all converted files
-        if results:
-            master_zip = "all_converted_emails.zip"
-            with zipfile.ZipFile(master_zip, 'w') as zipf:
-                for _, zip_path in results:
-                    zipf.write(zip_path, os.path.basename(zip_path))
+#         # Create a master ZIP file containing all converted files
+#         if results:
+#             master_zip = "all_converted_emails.zip"
+#             with zipfile.ZipFile(master_zip, 'w') as zipf:
+#                 for _, zip_path in results:
+#                     zipf.write(zip_path, os.path.basename(zip_path))
             
-            print("\nDownloading combined ZIP file containing all converted emails...")
-            files.download(master_zip)
+#             print("\nDownloading combined ZIP file containing all converted emails...")
+#             files.download(master_zip)
     
-    finally:
-        # Cleanup
-        for file_path in msg_files:
-            try:
-                os.remove(file_path)
-            except:
-                pass
+#     finally:
+#         # Cleanup
+#         for file_path in msg_files:
+#             try:
+#                 os.remove(file_path)
+#             except:
+#                 pass
 
-# Run the batch processor
-process_batch()
+# # Run the batch processor
+# process_batch()
