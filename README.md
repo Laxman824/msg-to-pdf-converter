@@ -1,5 +1,6 @@
 # MSG to PDF Converter
-
+.msg files (Microsoft Outlook Message files) are widely used for managing and storing email correspondence conversations .
+Financial institutions must adhere to strict regulatory requirements for communication retention. .msg files allow emails, attachments, and metadata (like timestamps) to be preserved in their original format for auditing and legal purposes.
 A Streamlit web application that converts MSG (Outlook Message) files to PDF format while preserving formatting and attachments.
 
 ## Features
